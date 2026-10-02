@@ -18,7 +18,7 @@ def test_pipeline(tmp_path, monkeypatch):
     out = pipeline.run_pipeline(GOOD)
     assert out["municipal"]["packet"]["case_id"] == "c1"
     assert out["status"]["case_id"] == "c1"
-    assert "routing" in pipeline.run_pipeline({"case_id": "x"}) or True
+    assert "routing" not in pipeline.run_pipeline({"case_id": "x"})
 
 
 def test_cap():
