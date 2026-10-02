@@ -1,0 +1,6 @@
+[{integration_label}]
+Community Action Program update
+Reference: {reference_id}
+Status: {status}
+
+{body}
