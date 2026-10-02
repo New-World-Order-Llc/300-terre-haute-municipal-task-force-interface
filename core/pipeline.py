@@ -3,8 +3,10 @@ from adapters.nwo_dao_adapter import dao_format
 from adapters.nwo_llc_adapter import llc_format
 from core.audit import log_event
 from core.cap_routing import cap_route
+from core.cap_webhook import send_cap_webhook
 from core.case_store import save_case, update_case_status
 from core.intake import intake
+from core.municipal_webhook import send_municipal_webhook
 from core.routing import route_to_municipal
 from core.status import status_report
 from core.validation import validate_payload
@@ -35,6 +37,9 @@ def run_pipeline(payload):
     log_event("routing", routing_result)
     update_case_status(case_id, "municipal_routed")
     update_case_status(case_id, "cap_routed")
+
+    send_municipal_webhook(municipal_ready["packet"])
+    send_cap_webhook(cap_ready["cap_packet"])
 
     status = status_report(case_id)
     log_event("status", status)

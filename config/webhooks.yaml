@@ -1,0 +1,9 @@
+cap:
+  url: "CAP_WEBHOOK_URL_PLACEHOLDER"
+  retries: 3
+  timeout: 5
+
+municipal:
+  url: "MUNICIPAL_WEBHOOK_URL_PLACEHOLDER"
+  retries: 3
+  timeout: 5
