@@ -2,6 +2,7 @@ from adapters.municipal_adapter import municipal_format
 from adapters.nwo_dao_adapter import dao_format
 from adapters.nwo_llc_adapter import llc_format
 from core.audit import log_event
+from core.cap_routing import cap_route
 from core.intake import intake
 from core.routing import route_to_municipal
 from core.status import status_report
@@ -24,6 +25,8 @@ def run_pipeline(payload):
     dao_ready = dao_format(validated)
     llc_ready = llc_format(validated)
     municipal_ready = municipal_format(validated)
+    cap_ready = cap_route(validated)
+    log_event("cap", cap_ready)
 
     routing_result = route_to_municipal(municipal_ready)
     log_event("routing", routing_result)
@@ -37,6 +40,7 @@ def run_pipeline(payload):
         "dao": dao_ready,
         "llc": llc_ready,
         "municipal": municipal_ready,
+        "cap": cap_ready,
         "routing": routing_result,
         "status": status,
     }
