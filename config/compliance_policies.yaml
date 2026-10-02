@@ -1,0 +1,9 @@
+compliance_tag: "MUNISIBLE_TASK_FORCE"
+integration_label: "INTEGRATION MODULE - NOT THE OFFICIAL MAYOR'S OFFICE"
+allow_impersonation: false
+allow_hardcoded_contacts: false
+valid_categories:
+  - community_action
+  - dao
+  - llc
+  - municipal

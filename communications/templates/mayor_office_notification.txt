@@ -1,0 +1,8 @@
+[{integration_label}]
+To: {recipient}
+Subject: {subject}
+
+{body}
+
+Reference: {reference_id}
+This message was sent by an integration module and is not an official communication of the Mayor's Office.
