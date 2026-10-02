@@ -1,10 +1,13 @@
 import email
 import imaplib
+import time
 import smtplib
 from email.mime.text import MIMEText
 from pathlib import Path
 
 import yaml
+
+from core.audit import log_event
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "email_endpoints.yaml"
 
@@ -14,8 +17,18 @@ def load_config():
         return yaml.safe_load(f)
 
 
+REQUIRED_CONFIG_KEYS = ["email", "phone", "smtp_host", "smtp_port", "imap_host", "imap_port"]
+
+
+def validate_config(cfg):
+    return [k for k in REQUIRED_CONFIG_KEYS if k not in cfg]
+
+
 def send_mayors_office_email(subject, body):
     cfg = load_config()["mayors_office"]
+    missing = validate_config(cfg)
+    if missing:
+        raise ValueError(f"Missing config keys: {missing}")
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = "nwo-system@example.com"
@@ -37,3 +50,16 @@ def fetch_mayors_office_inbox(limit=10):
             typ, msg_data = imap.fetch(msg_id, "(RFC822)")
             messages.append(email.message_from_bytes(msg_data[0][1]))
         return messages
+
+
+def send_with_retry(subject, body, retries=3, delay=2):
+    for attempt in range(1, retries + 1):
+        try:
+            send_mayors_office_email(subject, body)
+            log_event("email_sent", {"subject": subject})
+            return True
+        except Exception as e:
+            log_event("email_error", {"attempt": attempt, "error": str(e)})
+            if attempt < retries:
+                time.sleep(delay)
+    return False
