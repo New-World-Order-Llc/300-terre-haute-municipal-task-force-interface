@@ -1,0 +1,8 @@
+mayors_office:
+  email: "MAYORS_OFFICE_EMAIL_PLACEHOLDER"
+  phone: "MAYORS_OFFICE_PHONE_PLACEHOLDER"
+  protocol: "smtp_imap"
+  smtp_host: "smtp.placeholder.com"
+  smtp_port: 587
+  imap_host: "imap.placeholder.com"
+  imap_port: 993
