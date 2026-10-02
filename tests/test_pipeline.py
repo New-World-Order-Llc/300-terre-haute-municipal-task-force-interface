@@ -1,7 +1,7 @@
 from unittest import mock
 
 from communications import email_client
-from core import audit, pipeline
+from core import audit, case_store, pipeline
 from core.cap_routing import cap_route
 from core.validation import validate_payload
 
@@ -15,6 +15,7 @@ def test_validation():
 
 def test_pipeline(tmp_path, monkeypatch):
     monkeypatch.setattr(audit, "AUDIT_LOG", tmp_path / "a.log")
+    monkeypatch.setattr(case_store, "CASE_STORE", tmp_path / "cases.jsonl")
     out = pipeline.run_pipeline(GOOD)
     assert out["municipal"]["packet"]["case_id"] == "c1"
     assert out["status"]["case_id"] == "c1"

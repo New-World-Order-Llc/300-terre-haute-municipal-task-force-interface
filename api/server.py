@@ -3,6 +3,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from core.pipeline import run_pipeline
+from core.case_store import get_case
 from core.status import status_report
 
 MAX_BODY = 1024 * 1024
@@ -39,7 +40,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parts = self.path.strip("/").split("/")
         if len(parts) == 2 and parts[0] == "status" and parts[1]:
-            return self._send(200, status_report(parts[1]))
+            case = get_case(parts[1])
+            if case is None:
+                return self._send(404, {"error": "case not found"})
+            report = status_report(parts[1])
+            report["status"] = case["status"] or report["status"]
+            report["history"] = case["history"]
+            return self._send(200, report)
         self._send(404, {"error": "not found"})
 
     def log_message(self, *args):
