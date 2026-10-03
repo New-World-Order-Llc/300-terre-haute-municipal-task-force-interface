@@ -72,7 +72,7 @@ function createSignedPacket(packet, privateKeyPem, anchor = DEFAULT_ANCHOR) {
   if (signature !== undefined) {
     throw new Error('unsigned packet must not include signature');
   }
-  const completePacket = { ...unsignedPacket, signature: '' };
+  const completePacket = { ...unsignedPacket, signature: Buffer.alloc(64).toString('base64') };
   validatePacket(completePacket);
   if (typeof privateKeyPem !== 'string' || privateKeyPem.trim() === '') {
     throw new Error('SIGNING_PRIVATE_KEY is required');
