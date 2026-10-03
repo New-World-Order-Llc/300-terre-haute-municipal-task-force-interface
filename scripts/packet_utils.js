@@ -40,6 +40,11 @@ function validatePacket(packet) {
   if (packet === null || typeof packet !== 'object' || Array.isArray(packet)) {
     throw new Error('packet must be a JSON object');
   }
+  const expectedKeys = ['packet_id', 'packet_type', 'timestamp', 'signature', 'payload'];
+  if (Object.keys(packet).length !== expectedKeys.length
+      || expectedKeys.some((key) => !Object.hasOwn(packet, key))) {
+    throw new Error('packet must contain exactly packet_id, packet_type, timestamp, signature, and payload');
+  }
   if (typeof packet.packet_id !== 'string' || !UUID_PATTERN.test(packet.packet_id)) {
     throw new Error('packet_id must be a UUID');
   }
@@ -57,6 +62,32 @@ function validatePacket(packet) {
     throw new Error('payload must be a JSON object');
   }
   return packet;
+}
+
+function createSignedPacket(packet, privateKeyPem, anchor = DEFAULT_ANCHOR) {
+  if (packet === null || typeof packet !== 'object' || Array.isArray(packet)) {
+    throw new Error('packet must be a JSON object');
+  }
+  const { signature, ...unsignedPacket } = packet;
+  if (signature !== undefined) {
+    throw new Error('unsigned packet must not include signature');
+  }
+  const completePacket = { ...unsignedPacket, signature: '' };
+  validatePacket(completePacket);
+  if (typeof privateKeyPem !== 'string' || privateKeyPem.trim() === '') {
+    throw new Error('SIGNING_PRIVATE_KEY is required');
+  }
+  let privateKey;
+  try {
+    privateKey = crypto.createPrivateKey(privateKeyPem);
+  } catch {
+    throw new Error('SIGNING_PRIVATE_KEY is invalid');
+  }
+  if (privateKey.asymmetricKeyType !== 'ed25519') {
+    throw new Error('SIGNING_PRIVATE_KEY must be an Ed25519 private key');
+  }
+  completePacket.signature = crypto.sign(null, signingBytes(completePacket, anchor), privateKey).toString('base64');
+  return completePacket;
 }
 
 function signingBytes(packet, anchor = DEFAULT_ANCHOR) {
@@ -111,6 +142,7 @@ module.exports = {
   DEFAULT_ANCHOR,
   PACKET_TYPES,
   canonicalize,
+  createSignedPacket,
   isValidTimestamp,
   readPacketFile,
   signingBytes,

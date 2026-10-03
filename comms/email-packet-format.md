@@ -19,5 +19,14 @@ Requirements:
 - `timestamp` is an ISO 8601 date-time including a timezone.
 - `signature` is a base64 Ed25519 signature as specified in [endpoint-spec.md](endpoint-spec.md).
 - `payload` is a JSON object containing only information approved for this recipient and email channel.
+- No additional top-level properties are allowed.
 
 The subject is constructed from the validated values as `packet_type:packet_id:timestamp`. The sender refuses malformed packets and packets whose signature cannot be verified. Listing a packet type does not authorize disclosure: do not email personal, informant, or restricted case data without explicit approval for the recipient and channel.
+
+Create a packet from an unsigned JSON envelope containing `packet_id`, `packet_type`, `timestamp`, and `payload` using `SIGNING_PRIVATE_KEY` held securely on a trusted local machine:
+
+```sh
+node scripts/create_packet.js unsigned-packet.json > signed-packet.json
+```
+
+The generator emits exactly the five required properties and an Ed25519 signature. Keep the private key offline and out of GitHub Actions; verify generated packets using the separately configured public key before placing them in `packets/`.

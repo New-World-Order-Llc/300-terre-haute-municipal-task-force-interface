@@ -6,29 +6,42 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { signingBytes, validatePacket, verifyPacketSignature } = require('../scripts/packet_utils');
+const { createSignedPacket, signingBytes, validatePacket, verifyPacketSignature } = require('../scripts/packet_utils');
 const { readPacketFile } = require('../scripts/packet_utils');
 const { sendPacket } = require('../scripts/send_packet_email');
 
 const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519');
+const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
 const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' });
 
-function makePacket() {
-  const packet = {
+function makeUnsignedPacket() {
+  return {
     packet_id: '550e8400-e29b-41d4-a716-446655440000',
     packet_type: 'TASKFORCE',
     timestamp: '2026-10-03T18:00:00Z',
     payload: { nested: { z: 1, a: true }, items: ['one', 'two'] },
-    signature: '',
   };
-  packet.signature = crypto.sign(null, signingBytes(packet), privateKey).toString('base64');
-  return packet;
+}
+
+function makePacket() {
+  return createSignedPacket(makeUnsignedPacket(), privateKeyPem);
 }
 
 test('validates and verifies a signed packet', () => {
   const packet = makePacket();
   assert.equal(validatePacket(packet), packet);
   assert.equal(verifyPacketSignature(packet, publicKeyPem), true);
+});
+
+test('generates deterministic signed packets with the exact envelope', () => {
+  const unsignedPacket = makeUnsignedPacket();
+  const firstPacket = createSignedPacket(unsignedPacket, privateKeyPem);
+  const secondPacket = createSignedPacket(unsignedPacket, privateKeyPem);
+  assert.deepEqual(firstPacket, secondPacket);
+  assert.deepEqual(Object.keys(firstPacket).sort(), ['packet_id', 'packet_type', 'timestamp', 'signature', 'payload'].sort());
+  assert.equal(verifyPacketSignature(firstPacket, publicKeyPem), true);
+  assert.throws(() => createSignedPacket({ ...unsignedPacket, extra: true }, privateKeyPem), /exactly packet_id/);
+  assert.throws(() => validatePacket({ ...firstPacket, extra: true }), /exactly packet_id/);
 });
 
 test('rejects malformed packet fields and invalid signatures', () => {

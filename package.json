@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "verify-signature": "node scripts/verify_signature.js"
+    "verify-signature": "node scripts/verify_signature.js",
+    "create-packet": "node scripts/create_packet.js"
   },
   "license": "UNLICENSED",
   "dependencies": {
