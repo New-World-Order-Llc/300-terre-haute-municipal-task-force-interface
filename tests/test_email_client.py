@@ -58,6 +58,8 @@ class EmailClientTest(unittest.TestCase):
         c = EmailClient("mayors_office", audit=self.audit, env={})
         with self.assertRaises(RuntimeError):
             c.send("a", "b", "c")
+        with open(self.audit.path, encoding="utf-8") as audit_file:
+            self.assertIn("credentials_unavailable", audit_file.read())
 
 
 if __name__ == "__main__":

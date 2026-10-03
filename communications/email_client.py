@@ -1,6 +1,7 @@
 """SMTP send / IMAP receive client. Credentials come from environment variables."""
 import email
 import imaplib
+import math
 import os
 import smtplib
 import time
@@ -22,7 +23,14 @@ class EmailClient:
         self.env = os.environ if env is None else env
         self.connect_attempts = int(self.cfg.get("smtp_connect_attempts", 1))
         self.retry_backoff_seconds = float(self.cfg.get("smtp_retry_backoff_seconds", 0))
-        if not 1 <= self.connect_attempts <= 5 or self.retry_backoff_seconds < 0:
+        self.smtp_timeout_seconds = float(self.cfg.get("smtp_timeout_seconds", 10))
+        if (
+            not 1 <= self.connect_attempts <= 5
+            or not math.isfinite(self.retry_backoff_seconds)
+            or self.retry_backoff_seconds < 0
+            or not math.isfinite(self.smtp_timeout_seconds)
+            or self.smtp_timeout_seconds <= 0
+        ):
             raise ValueError("SMTP retry settings are out of range")
 
     def _credentials(self):
@@ -43,24 +51,38 @@ class EmailClient:
 
     def send(self, sender, subject, body, reference_id=None):
         msg = self.build_message(sender, subject, body)
-        user, password = self._credentials()
+        base_metadata = {
+            "endpoint": self.endpoint,
+            "host": self.cfg["smtp_host"],
+            "port": self.cfg["smtp_port"],
+            "tls": True,
+            "reference_id": reference_id,
+        }
+        try:
+            user, password = self._credentials()
+        except RuntimeError:
+            self.audit.log(
+                "smtp_delivery_failed",
+                **base_metadata,
+                attempt=0,
+                failure_type="credentials_unavailable",
+            )
+            raise
         for attempt in range(1, self.connect_attempts + 1):
-            metadata = {
-                "endpoint": self.endpoint,
-                "host": self.cfg["smtp_host"],
-                "port": self.cfg["smtp_port"],
-                "tls": True,
-                "attempt": attempt,
-                "reference_id": reference_id,
-            }
+            metadata = dict(base_metadata, attempt=attempt)
             self.audit.log("smtp_delivery_attempt", **metadata)
             try:
-                smtp = smtplib.SMTP(self.cfg["smtp_host"], self.cfg["smtp_port"])
-            except (OSError, smtplib.SMTPConnectError) as exc:
+                smtp = smtplib.SMTP(
+                    self.cfg["smtp_host"],
+                    self.cfg["smtp_port"],
+                    timeout=self.smtp_timeout_seconds,
+                )
+            except (OSError, smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected) as exc:
                 self.audit.log(
                     "smtp_delivery_failed",
                     **metadata,
                     failure_type=type(exc).__name__,
+                    response_code=getattr(exc, "smtp_code", None),
                 )
                 if attempt == self.connect_attempts:
                     raise
@@ -109,7 +131,11 @@ class EmailClient:
             "tls": True,
         }
         try:
-            with smtplib.SMTP(self.cfg["smtp_host"], self.cfg["smtp_port"]) as smtp:
+            with smtplib.SMTP(
+                self.cfg["smtp_host"],
+                self.cfg["smtp_port"],
+                timeout=self.smtp_timeout_seconds,
+            ) as smtp:
                 smtp.starttls()
         except Exception as exc:
             self.audit.log(
