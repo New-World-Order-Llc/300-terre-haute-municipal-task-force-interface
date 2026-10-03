@@ -1,4 +1,4 @@
-mayors_office:
+mayor_office:
   email: "mayor@terrehaute.in.gov"
   phone: "MAYORS_OFFICE_PHONE_PLACEHOLDER"
   protocol: "smtp_imap"

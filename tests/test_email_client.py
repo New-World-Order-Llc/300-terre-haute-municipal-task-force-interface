@@ -11,8 +11,8 @@ class EmailClientTest(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.TemporaryDirectory()
         self.audit = AuditLogger(os.path.join(self.d.name, "a.jsonl"))
-        self.env = {"MAYORS_OFFICE_EMAIL_USER": "u", "MAYORS_OFFICE_EMAIL_PASSWORD": "p"}
-        self.client = EmailClient("mayors_office", audit=self.audit, env=self.env)
+        self.env = {"MAYOR_OFFICE_EMAIL_USER": "u", "MAYOR_OFFICE_EMAIL_PASSWORD": "p"}
+        self.client = EmailClient("mayor_office", audit=self.audit, env=self.env)
 
     def tearDown(self):
         self.d.cleanup()
@@ -55,7 +55,7 @@ class EmailClientTest(unittest.TestCase):
             session.send_message.assert_not_called()
 
     def test_missing_credentials(self):
-        c = EmailClient("mayors_office", audit=self.audit, env={})
+        c = EmailClient("mayor_office", audit=self.audit, env={})
         with self.assertRaises(RuntimeError):
             c.send("a", "b", "c")
         with open(self.audit.path, encoding="utf-8") as audit_file:

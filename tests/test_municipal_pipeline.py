@@ -25,10 +25,8 @@ class MunicipalPipelineTest(unittest.TestCase):
             }
             reference_id, errors = intake(record, audit=audit, tracker=tracker)
             self.assertEqual(errors, [])
-            self.assertEqual(
-                route(record, audit=audit, tracker=tracker, ref=reference_id),
-                "mayor_office",
-            )
+            destination = route(record, audit=audit, tracker=tracker, ref=reference_id)
+            self.assertEqual(destination, "mayor_office")
             content = format_outbound(
                 record["subject"],
                 record["body"],
@@ -40,10 +38,10 @@ class MunicipalPipelineTest(unittest.TestCase):
             self.assertIn(reference_id, content)
 
             email_env = {
-                "MAYORS_OFFICE_EMAIL_USER": "test-user",
-                "MAYORS_OFFICE_EMAIL_PASSWORD": "test-password",
+                "MAYOR_OFFICE_EMAIL_USER": "test-user",
+                "MAYOR_OFFICE_EMAIL_PASSWORD": "test-password",
             }
-            client = EmailClient("mayors_office", audit=audit, env=email_env)
+            client = EmailClient(destination, audit=audit, env=email_env)
             with mock.patch("smtplib.SMTP") as smtp:
                 smtp.return_value.__enter__.return_value.send_message.return_value = {}
                 client.send(
