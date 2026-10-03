@@ -68,10 +68,10 @@ class EmailClient:
                 continue
 
             try:
-                with smtp:
-                    smtp.starttls()
-                    smtp.login(user, password)
-                    refused = smtp.send_message(msg)
+                with smtp as session:
+                    session.starttls()
+                    session.login(user, password)
+                    refused = session.send_message(msg)
                 response_codes = sorted(
                     response[0]
                     for response in refused.values()

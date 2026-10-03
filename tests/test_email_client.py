@@ -19,6 +19,7 @@ class EmailClientTest(unittest.TestCase):
 
     def test_send_logs(self):
         with mock.patch("smtplib.SMTP") as smtp:
+            smtp.return_value.__enter__.return_value.send_message.return_value = {}
             self.client.send("noreply@placeholder.invalid", "hi", "body")
             send_message = smtp.return_value.__enter__.return_value.send_message
             send_message.assert_called_once()
