@@ -12,4 +12,4 @@ Deterministic municipal integration module for coordination between New World Or
 - `tests/` – run with `python -m unittest discover -s tests -t .`
 
 ## Configuration
-Endpoints come from `config/email_endpoints.yaml`; replace placeholders locally. Credentials are read from environment variables `<ENDPOINT>_EMAIL_USER` and `<ENDPOINT>_EMAIL_PASSWORD` (e.g. `MAYORS_OFFICE_EMAIL_USER`). Never commit real contact information. Audit log path: `AUDIT_LOG_PATH` (default `audit.log.jsonl`).
+The Mayor's Office recipient is the public address currently published by the [City of Terre Haute](https://www.terrehaute.in.gov/government/mayor/index.php). Configure the SMTP/IMAP hosts and ports in `config/email_endpoints.yaml` for an approved mail provider before use; the checked-in host values are placeholders. Provider credentials are read from `<ENDPOINT>_EMAIL_USER` and `<ENDPOINT>_EMAIL_PASSWORD` (e.g. `MAYORS_OFFICE_EMAIL_USER`) and must not be committed. Audit log path: `AUDIT_LOG_PATH` (default `audit.log.jsonl`).

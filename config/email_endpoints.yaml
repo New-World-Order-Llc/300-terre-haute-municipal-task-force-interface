@@ -1,5 +1,5 @@
 mayors_office:
-  email: "MAYORS_OFFICE_EMAIL_PLACEHOLDER"
+  email: "mayor@terrehaute.in.gov"
   phone: "MAYORS_OFFICE_PHONE_PLACEHOLDER"
   protocol: "smtp_imap"
   smtp_host: "smtp.placeholder.com"

@@ -20,7 +20,9 @@ class EmailClientTest(unittest.TestCase):
     def test_send_logs(self):
         with mock.patch("smtplib.SMTP") as smtp:
             self.client.send("noreply@placeholder.invalid", "hi", "body")
-            smtp.return_value.__enter__.return_value.send_message.assert_called_once()
+            send_message = smtp.return_value.__enter__.return_value.send_message
+            send_message.assert_called_once()
+            self.assertEqual(send_message.call_args.args[0]["To"], "mayor@terrehaute.in.gov")
         self.assertIn("email_sent", open(self.audit.path).read())
 
     def test_missing_credentials(self):
