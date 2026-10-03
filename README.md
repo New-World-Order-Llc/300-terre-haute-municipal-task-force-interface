@@ -26,3 +26,14 @@ The Node.js sender accepts a signed packet JSON file and verifies its Ed25519 si
 The manual GitHub Actions workflow sends only packets in `packets/` and uses the `municipal-email-send` environment. Configure that GitHub environment with required reviewers before adding SMTP secrets. Do not email personal, informant, or restricted case data unless the City has explicitly approved the data, channel, and handling requirements. `contracts/Treasury.sol` implements an admin-controlled LUCR vault with budget approval/revocation and fund-release events. `contracts/MunisibleTaskForce.sol` implements admin/manager-controlled task forces and projects, LUCR budgets and disbursement, and events for off-chain audit consumers. These contracts do not themselves generate, sign, or send municipal email packets; deployment, token/admin configuration, and an off-chain event consumer remain separate.
 
 `npm run packet-bridge` runs the optional confirmed-block poller described in `comms/email-packet-format.md`. It signs and persists event packets locally using a protected signing key and resumable cursor; it never sends email or triggers the workflow automatically. Configure deployment addresses and RPC details only after independently verifying the chain and contract deployments.
+
+## Before production use
+This repository is not production-deployed or authorized to speak for the City. Before handling funds or sending municipal packets:
+
+- Have the LUCR token and both contracts independently reviewed and deployed to the intended chain. Verify deployed addresses, constructor arguments, and admin authority; use a DAO-controlled multisig rather than an individual hot wallet for treasury administration.
+- Run a testnet rehearsal and obtain an independent Solidity/security audit. The local test suites and compiler checks do not substitute for either.
+- Confirm the municipal recipient, sender mailbox, data-sharing approval, and email handling requirements directly with the City. No contact address in this repository is verified.
+- Configure the repository's `municipal-email-send` environment with required reviewers, then add authorized SMTP values and the public signing key as environment secrets. Keep the bridge signing private key in a restricted bridge-host secret store, never in this repository or GitHub Actions.
+- Configure the bridge with the independently verified RPC, chain ID, contract addresses, deployment start block, durable cursor storage, monitoring, and backups. The bridge stops on cursor reorganization; operators must investigate and reconcile any already-produced packets before manually resetting its cursor.
+
+Do not describe this integration as production-ready until these external governance, audit, City authorization, deployment, and operational prerequisites have been completed.
