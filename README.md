@@ -9,7 +9,7 @@ Deterministic municipal integration module for coordination between New World Or
 - `core/` – `intake`, `routing`, `status`, `audit` (JSON-line, UTC, compliance-tagged)
 - `communications/` – SMTP/IMAP `email_client.py` and message templates
 - `comms/` – municipal packet and signature protocol
-- `contracts/` – LUCR Treasury contract and task-force contract scaffold
+- `contracts/` – LUCR Treasury and task-force/project contracts
 - `infra/` – example SMTP configuration
 - `scripts/` – signed packet verification and email delivery
 - `adapters/` – DAO, LLC and municipal adapters
@@ -23,4 +23,4 @@ See `comms/endpoint-spec.md` and `comms/email-packet-format.md` for the packet p
 
 The Node.js sender accepts a signed packet JSON file and verifies its Ed25519 signature before sending. Generate packets locally with `node scripts/create_packet.js unsigned-packet.json > signed-packet.json`; this uses a local `SIGNING_PRIVATE_KEY` and never requires sending the private key to GitHub. Install dependencies with `npm ci`; run its tests with `npm test`. For local use, copy `env.example` to `.env` and load its values securely in your shell. Never commit credentials, private signing keys, or real packet data. Configure only the corresponding public key as the `SIGNING_PUBLIC_KEY` secret.
 
-The manual GitHub Actions workflow sends only packets in `packets/` and uses the `municipal-email-send` environment. Configure that GitHub environment with required reviewers before adding SMTP secrets. Do not email personal, informant, or restricted case data unless the City has explicitly approved the data, channel, and handling requirements. `contracts/Treasury.sol` implements an admin-controlled LUCR vault with budget approval/revocation and fund-release events. It does not establish who should hold admin authority, deploy a token, or bridge on-chain events to packet delivery; `MunisibleTaskForce.sol` remains a scaffold.
+The manual GitHub Actions workflow sends only packets in `packets/` and uses the `municipal-email-send` environment. Configure that GitHub environment with required reviewers before adding SMTP secrets. Do not email personal, informant, or restricted case data unless the City has explicitly approved the data, channel, and handling requirements. `contracts/Treasury.sol` implements an admin-controlled LUCR vault with budget approval/revocation and fund-release events. `contracts/MunisibleTaskForce.sol` implements admin/manager-controlled task forces and projects, LUCR budgets and disbursement, and events for off-chain audit consumers. These contracts do not themselves generate, sign, or send municipal email packets; deployment, token/admin configuration, and an off-chain event consumer remain separate.
