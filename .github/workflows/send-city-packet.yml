@@ -1,0 +1,43 @@
+name: Send Municipal Packet
+
+on:
+  workflow_dispatch:
+    inputs:
+      packet_file:
+        description: "Path to a reviewed packet JSON file under packets/"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  send-packet:
+    runs-on: ubuntu-latest
+    environment: municipal-email-send
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send packet to configured endpoint
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SYSTEM_EMAIL: ${{ secrets.SYSTEM_EMAIL }}
+          CITY_ENDPOINT_EMAIL: ${{ secrets.CITY_ENDPOINT_EMAIL }}
+          SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
+          WALLET_ANCHOR_ID: ${{ vars.WALLET_ANCHOR_ID }}
+          PACKET_DIRECTORY: packets
+          PACKET_FILE: ${{ inputs.packet_file }}
+        run: node scripts/send_packet_email.js

@@ -1,0 +1,9 @@
+{
+  "host": "smtp.example.invalid",
+  "port": 465,
+  "secure": true,
+  "auth_user_env": "SMTP_USER",
+  "auth_password_env": "SMTP_PASS",
+  "sender_env": "SYSTEM_EMAIL",
+  "recipient_env": "CITY_ENDPOINT_EMAIL"
+}

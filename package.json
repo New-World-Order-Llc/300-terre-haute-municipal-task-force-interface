@@ -1,0 +1,14 @@
+{
+  "name": "munisible-task-force",
+  "version": "1.0.0",
+  "description": "Signed municipal packet email integration",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "verify-signature": "node scripts/verify_signature.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "nodemailer": "10.0.14"
+  }
+}
