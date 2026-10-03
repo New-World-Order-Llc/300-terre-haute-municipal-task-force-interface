@@ -16,6 +16,7 @@ contract MunisibleTaskForce {
 
     address public admin;
     mapping(address => bool) public managers;
+    bool private _entered;
 
     struct TaskForce {
         uint256 id;
@@ -65,6 +66,13 @@ contract MunisibleTaskForce {
     modifier onlyManager() {
         require(managers[msg.sender] || msg.sender == admin, "NOT_MANAGER");
         _;
+    }
+
+    modifier nonReentrant() {
+        require(!_entered, "REENTRANT");
+        _entered = true;
+        _;
+        _entered = false;
     }
 
     constructor(address _lucrToken, address _admin) {
@@ -151,7 +159,7 @@ contract MunisibleTaskForce {
         uint256 projectId,
         address recipient,
         uint256 amountLucr
-    ) external onlyManager {
+    ) external onlyManager nonReentrant {
         require(recipient != address(0), "RECIPIENT_ZERO");
         require(amountLucr > 0, "AMOUNT_ZERO");
 
@@ -161,9 +169,8 @@ contract MunisibleTaskForce {
 
         uint256 available = lucr.balanceOf(address(this));
         require(available >= amountLucr, "INSUFFICIENT_TREASURY_FUNDS");
-        require(lucr.transfer(recipient, amountLucr), "LUCR_TRANSFER_FAIL");
-
         p.spentLucr += amountLucr;
+        require(lucr.transfer(recipient, amountLucr), "LUCR_TRANSFER_FAIL");
 
         emit ProjectFunded(projectId, recipient, amountLucr);
     }

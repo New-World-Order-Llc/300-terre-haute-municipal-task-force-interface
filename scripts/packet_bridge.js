@@ -8,7 +8,11 @@ const {
   JsonRpcProvider,
   isAddress,
 } = require('ethers');
-const { DEFAULT_ANCHOR, verifyPacketSignature } = require('./packet_utils');
+const {
+  DEFAULT_ANCHOR,
+  createSignedPacket,
+  verifyPacketSignature,
+} = require('./packet_utils');
 const { buildEventPacket, EVENT_PACKET_TYPES } = require('./packet_bridge_utils');
 
 const TREASURY_ABI = [
@@ -50,6 +54,17 @@ function integerEnv(env, name, defaultValue, minimum = 0) {
 }
 
 function loadConfig(env = process.env) {
+  const rpcUrl = requiredEnv(env, 'RPC_URL');
+  let parsedRpcUrl;
+  try {
+    parsedRpcUrl = new URL(rpcUrl);
+  } catch {
+    throw new Error('RPC_URL must be a valid HTTPS URL');
+  }
+  const isLocalRpc = ['localhost', '127.0.0.1', '[::1]'].includes(parsedRpcUrl.hostname);
+  if (parsedRpcUrl.protocol !== 'https:' && !(isLocalRpc && parsedRpcUrl.protocol === 'http:')) {
+    throw new Error('RPC_URL must use HTTPS except for a local development endpoint');
+  }
   const treasuryAddress = requiredEnv(env, 'TREASURY_ADDRESS');
   const taskForceAddress = requiredEnv(env, 'TASKFORCE_ADDRESS');
   if (!isAddress(treasuryAddress) || !isAddress(taskForceAddress)) {
@@ -59,7 +74,8 @@ function loadConfig(env = process.env) {
     throw new Error('TREASURY_ADDRESS and TASKFORCE_ADDRESS must be different contracts');
   }
   return {
-    rpcUrl: requiredEnv(env, 'RPC_URL'),
+    rpcUrl,
+    expectedChainId: integerEnv(env, 'BRIDGE_CHAIN_ID', undefined, 1),
     treasuryAddress,
     taskForceAddress,
     startBlock: integerEnv(env, 'BRIDGE_START_BLOCK', undefined),
@@ -87,14 +103,24 @@ function loadCursor(config, chainId) {
     startBlock: config.startBlock,
   };
   if (!fs.existsSync(config.cursorFile)) {
-    return { ...identity, lastBlock: config.startBlock - 1 };
+    return { ...identity, lastBlock: config.startBlock - 1, lastBlockHash: null };
   }
   const cursor = JSON.parse(fs.readFileSync(config.cursorFile, 'utf8'));
-  if (Object.keys(identity).some((key) => cursor[key] !== identity[key])
-      || !Number.isSafeInteger(cursor.lastBlock) || cursor.lastBlock < config.startBlock - 1) {
+  if (cursor === null || typeof cursor !== 'object' || Array.isArray(cursor)
+      || Object.keys(identity).some((key) => cursor[key] !== identity[key])
+      || !Number.isSafeInteger(cursor.lastBlock) || cursor.lastBlock < config.startBlock - 1
+      || (cursor.lastBlock === config.startBlock - 1
+        ? cursor.lastBlockHash !== null
+        : !/^0x[0-9a-f]{64}$/i.test(cursor.lastBlockHash || ''))) {
     throw new Error('bridge cursor does not match configured chain/contracts/start block');
   }
   return cursor;
+}
+
+function assertCanonicalHash(expectedHash, actualHash, blockNumber) {
+  if (typeof expectedHash !== 'string' || expectedHash.toLowerCase() !== actualHash?.toLowerCase()) {
+    throw new Error(`chain reorganization detected at block ${blockNumber}; stop and reconcile packets before resuming`);
+  }
 }
 
 function saveCursor(cursorPath, cursor) {
@@ -137,15 +163,33 @@ async function main(env = process.env) {
   try {
     const network = await provider.getNetwork();
     const chainId = network.chainId;
+    if (chainId !== BigInt(config.expectedChainId)) {
+      throw new Error(`connected chain ID ${chainId} does not match BRIDGE_CHAIN_ID ${config.expectedChainId}`);
+    }
     const cursor = loadCursor(config, chainId);
     if (cursor.lastBlock > await provider.getBlockNumber()) {
       throw new Error('bridge cursor is ahead of the configured chain head');
+    }
+    for (const address of [config.treasuryAddress, config.taskForceAddress]) {
+      if (await provider.getCode(address) === '0x') {
+        throw new Error(`no deployed contract code at ${address}`);
+      }
     }
     const treasuryToken = await treasury.lucr();
     const taskForceToken = await taskForce.lucr();
     if (treasuryToken.toLowerCase() !== taskForceToken.toLowerCase()) {
       throw new Error('Treasury and task-force contracts are configured with different LUCR tokens');
     }
+    if (await provider.getCode(treasuryToken) === '0x') {
+      throw new Error(`no deployed LUCR token code at ${treasuryToken}`);
+    }
+    const keyCheck = createSignedPacket({
+      packet_id: '00000000-0000-4000-8000-000000000001',
+      packet_type: 'TASKFORCE',
+      timestamp: '2000-01-01T00:00:00.000Z',
+      payload: {},
+    }, config.privateKey, config.anchor);
+    verifyPacketSignature(keyCheck, config.publicKey, config.anchor);
     const token = new Contract(treasuryToken, [
       'function balanceOf(address) view returns (uint256)',
     ], provider);
@@ -158,6 +202,10 @@ async function main(env = process.env) {
       [config.taskForceAddress.toLowerCase(), { iface: taskForceInterface }],
     ]);
     while (!stopped) {
+      if (cursor.lastBlock >= config.startBlock) {
+        const cursorBlock = await provider.getBlock(cursor.lastBlock);
+        assertCanonicalHash(cursor.lastBlockHash, cursorBlock?.hash, cursor.lastBlock);
+      }
       const latestBlock = await provider.getBlockNumber();
       const confirmedThrough = latestBlock - config.confirmations + 1;
       const fromBlock = cursor.lastBlock + 1;
@@ -190,6 +238,7 @@ async function main(env = process.env) {
           if (!block) {
             throw new Error(`could not retrieve block ${log.blockNumber}`);
           }
+          assertCanonicalHash(log.blockHash, block.hash, log.blockNumber);
           blockCache.set(log.blockNumber, block);
         }
         const transaction = await provider.getTransaction(log.transactionHash);
@@ -230,7 +279,12 @@ async function main(env = process.env) {
         process.stdout.write(`Created ${packet.packet_type} packet ${packet.packet_id}: ${packetPath}\n`);
       }
 
+      const cursorBlock = await provider.getBlock(toBlock);
+      if (!cursorBlock) {
+        throw new Error(`could not retrieve cursor block ${toBlock}`);
+      }
       cursor.lastBlock = toBlock;
+      cursor.lastBlockHash = cursorBlock.hash;
       saveCursor(config.cursorFile, cursor);
     }
   } finally {
@@ -252,6 +306,7 @@ module.exports = {
   loadConfig,
   loadCursor,
   main,
+  assertCanonicalHash,
   persistPacket,
   saveCursor,
 };

@@ -17,6 +17,7 @@ contract Treasury {
 
     address public admin;
     mapping(address => uint256) public moduleBudgets;
+    bool private _entered;
 
     event AdminChanged(address indexed oldAdmin, address indexed newAdmin);
     event BudgetApproved(address indexed module, uint256 amount);
@@ -27,6 +28,13 @@ contract Treasury {
     modifier onlyAdmin() {
         require(msg.sender == admin, "NOT_ADMIN");
         _;
+    }
+
+    modifier nonReentrant() {
+        require(!_entered, "REENTRANT");
+        _entered = true;
+        _;
+        _entered = false;
     }
 
     constructor(address _lucrToken, address _admin) {
@@ -42,7 +50,7 @@ contract Treasury {
         admin = newAdmin;
     }
 
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external nonReentrant {
         require(amount > 0, "AMOUNT_ZERO");
         require(lucr.transferFrom(msg.sender, address(this), amount), "TRANSFER_FAIL");
         emit TreasuryFunded(msg.sender, amount);
@@ -60,7 +68,7 @@ contract Treasury {
         emit BudgetRevoked(module, amount);
     }
 
-    function releaseFunds(address module, uint256 amount) external onlyAdmin {
+    function releaseFunds(address module, uint256 amount) external onlyAdmin nonReentrant {
         require(module != address(0), "MODULE_ZERO");
         require(moduleBudgets[module] >= amount, "BUDGET_EXCEEDED");
 

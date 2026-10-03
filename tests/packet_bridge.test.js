@@ -13,6 +13,7 @@ const {
   deterministicPacketId,
 } = require('../scripts/packet_bridge_utils');
 const {
+  assertCanonicalHash,
   loadConfig,
   loadCursor,
   persistPacket,
@@ -92,9 +93,12 @@ test('persists packets idempotently and binds restart cursors to deployment iden
   const initialCursor = loadCursor(config, 11155111n);
   assert.equal(initialCursor.lastBlock, 19);
   initialCursor.lastBlock = 22;
+  initialCursor.lastBlockHash = `0x${'a'.repeat(64)}`;
   saveCursor(cursorPath, initialCursor);
   assert.equal(loadCursor(config, 11155111n).lastBlock, 22);
   assert.throws(() => loadCursor(config, 1n), /does not match/);
+  assert.throws(() => assertCanonicalHash(initialCursor.lastBlockHash, `0x${'b'.repeat(64)}`, 22), /reorganization detected/);
+  assert.doesNotThrow(() => assertCanonicalHash(initialCursor.lastBlockHash, initialCursor.lastBlockHash, 22));
 
   const packet = {
     packet_id: '550e8400-e29b-51d4-a716-446655440000',
@@ -112,7 +116,8 @@ test('persists packets idempotently and binds restart cursors to deployment iden
 
 test('requires an explicit deployment start block and valid contract addresses', () => {
   const env = {
-    RPC_URL: 'http://127.0.0.1:8545',
+    RPC_URL: 'https://rpc.example.invalid',
+    BRIDGE_CHAIN_ID: '11155111',
     TREASURY_ADDRESS: actor,
     TASKFORCE_ADDRESS: '0x0000000000000000000000000000000000000002',
     SIGNING_PRIVATE_KEY: privateKeyPem,
@@ -120,4 +125,6 @@ test('requires an explicit deployment start block and valid contract addresses',
   };
   assert.throws(() => loadConfig(env), /BRIDGE_START_BLOCK/);
   assert.equal(loadConfig({ ...env, BRIDGE_START_BLOCK: '20' }).startBlock, 20);
+  assert.throws(() => loadConfig({ ...env, RPC_URL: 'http://rpc.example.invalid', BRIDGE_START_BLOCK: '20' }), /HTTPS/);
+  assert.throws(() => loadConfig({ ...env, BRIDGE_CHAIN_ID: undefined, BRIDGE_START_BLOCK: '20' }), /BRIDGE_CHAIN_ID/);
 });
