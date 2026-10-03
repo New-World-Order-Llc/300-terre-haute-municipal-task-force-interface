@@ -4,14 +4,23 @@ import os
 from core.intake import load_policies
 
 TEMPLATES = os.path.join(os.path.dirname(__file__), "..", "communications", "templates")
+ALLOWED_TEMPLATES = {
+    "mayor_office_notification.txt",
+    "community_action_update.txt",
+    "municipal_packet_receipt.txt",
+}
 
 
 def format_outbound(subject, body, recipient, reference_id, template="mayor_office_notification.txt"):
     policies = load_policies()
+    if template not in ALLOWED_TEMPLATES:
+        raise ValueError("unknown municipal template: %s" % template)
     with open(os.path.join(TEMPLATES, template), encoding="utf-8") as fh:
         tpl = fh.read()
     return tpl.format(integration_label=policies["integration_label"], recipient=recipient,
-                      subject=subject, body=body, reference_id=reference_id, status="open")
+                      subject=subject, body=body, reference_id=reference_id, status="open",
+                      classification=policies["municipal_correspondence_classification"],
+                      retention_notice=policies["retention_notice"])
 
 
 def parse_inbound(message):

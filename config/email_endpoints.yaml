@@ -4,5 +4,7 @@ mayors_office:
   protocol: "smtp_imap"
   smtp_host: "smtp.placeholder.com"
   smtp_port: 587
+  smtp_connect_attempts: 3
+  smtp_retry_backoff_seconds: 0.5
   imap_host: "imap.placeholder.com"
   imap_port: 993

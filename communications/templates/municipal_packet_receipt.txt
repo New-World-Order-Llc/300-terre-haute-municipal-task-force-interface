@@ -1,8 +1,10 @@
 [{integration_label}]
-Community Action Program update
+Municipal packet receipt request
 Classification: {classification}
 Reference: {reference_id}
 Status: {status}
 
 {body}
+
+This is an integration-module receipt request, not confirmation of receipt by the City.
 Records handling: {retention_notice}

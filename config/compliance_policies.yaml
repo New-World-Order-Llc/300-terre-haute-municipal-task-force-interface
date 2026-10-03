@@ -2,6 +2,8 @@ compliance_tag: "MUNISIBLE_TASK_FORCE"
 integration_label: "INTEGRATION MODULE - NOT THE OFFICIAL MAYOR'S OFFICE"
 allow_impersonation: false
 allow_hardcoded_contacts: false
+municipal_correspondence_classification: "municipal_correspondence"
+retention_notice: "Subject to applicable public-records and retention requirements; confirm the governing schedule with the responsible records authority before deployment."
 valid_categories:
   - community_action
   - dao

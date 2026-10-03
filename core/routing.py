@@ -2,8 +2,8 @@
 ROUTES = {
     "dao": "nwo_dao",
     "llc": "nwo_llc",
-    "municipal": "municipal",
-    "community_action": "municipal",
+    "municipal": "mayor_office",
+    "community_action": "mayor_office",
 }
 
 
