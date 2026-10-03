@@ -6,10 +6,12 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "verify-signature": "node scripts/verify_signature.js",
-    "create-packet": "node scripts/create_packet.js"
+    "create-packet": "node scripts/create_packet.js",
+    "packet-bridge": "node scripts/packet_bridge.js"
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "ethers": "6.17.0",
     "nodemailer": "10.0.14"
   }
 }

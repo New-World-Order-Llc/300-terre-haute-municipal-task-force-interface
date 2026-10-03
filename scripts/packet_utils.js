@@ -4,7 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const PACKET_TYPES = new Set(['TASKFORCE', 'CAP_ROUTING', 'CASE_STORE', 'INFORMANT']);
+const PACKET_TYPES = new Set([
+  'TASKFORCE', 'CAP_ROUTING', 'CASE_STORE', 'INFORMANT',
+  'TREASURY_FUND', 'BUDGET_APPROVED', 'BUDGET_REVOKED', 'FUNDS_RELEASED',
+  'TASKFORCE_NEW', 'TASKFORCE_STATUS', 'PROJECT_NEW', 'PROJECT_STATUS', 'PROJECT_FUNDED',
+]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const DEFAULT_ANCHOR = '0cad6a0d-1462-47eb-853e-17521d57322e';
